@@ -39,7 +39,19 @@ object Harnais {
     }
 
     /** Attend que l'ecran ait (ou perde) le focus : c'est le signe qu'une fenetre vient de se fermer (ou de s'ouvrir). */
-    private fun attendreFocus(sc: ActivityScenario<Activity>, attendu: Boolean): Boolean = attendre { focus(sc) == attendu }
+    private fun attendreFocus(sc: ActivityScenario<Activity>, attendu: Boolean): Boolean = attendre(15000) { focus(sc) == attendu }
+
+    /** Ferme les applications qu'un test precedent a pu laisser au premier plan (Reglages Android, etc.) : elles volent le focus. */
+    private fun nettoyerPremierPlan() {
+        for (pkg in listOf("com.android.settings", "com.android.permissioncontroller", "com.google.android.permissioncontroller")) {
+            try {
+                instr().uiAutomation.executeShellCommand("am force-stop $pkg").use { fd ->
+                    java.io.FileInputStream(fd.fileDescriptor).use { it.readBytes() }
+                }
+            } catch (e: Throwable) { /* commande indisponible : sans effet sur le test */ }
+        }
+        instr().waitForIdleSync()
+    }
 
     private fun appuyerRetourAndroid() {
         instr().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
@@ -55,6 +67,7 @@ object Harnais {
 
     fun verifierEcran(intent: Intent, racine: Boolean, nom: String) {
         accorderNotifications()
+        nettoyerPremierPlan()
         val sc = ActivityScenario.launch<Activity>(intent)
         try {
             assertTrue("$nom : l'ecran n'a pas le focus au demarrage", attendreFocus(sc, true))
@@ -110,6 +123,7 @@ object Harnais {
 
     /** Le bouton Retour de l'en-tete doit avoir le meme effet que la fleche d'Android. */
     fun verifierBoutonRetour(intent: Intent, nom: String) {
+        nettoyerPremierPlan()
         val sc = ActivityScenario.launch<Activity>(intent)
         try {
             assertTrue("$nom : l'ecran n'a pas le focus au demarrage", attendreFocus(sc, true))
