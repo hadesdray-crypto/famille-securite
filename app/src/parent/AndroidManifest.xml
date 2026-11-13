@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <activity
+            android:name="fr.famille.parent.AccueilParent"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name="fr.famille.parent.AjouterEnfant" android:exported="false" />
+        <activity android:name="fr.famille.parent.CodeEnfant" android:exported="false" />
+        <activity android:name="fr.famille.parent.EnfantActivity" android:exported="false" />
+        <activity android:name="fr.famille.parent.HistoriqueActivity" android:exported="false" />
+
+        <service
+            android:name="fr.famille.parent.ServiceParent"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="Ecoute des alertes chiffrees envoyees par le telephone de l'enfant" />
+        </service>
+    </application>
+</manifest>

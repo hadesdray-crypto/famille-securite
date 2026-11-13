@@ -1,0 +1,82 @@
+name: Tests et appareils virtuels
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+jobs:
+  unitaires:
+    name: Tests unitaires et fabrication des APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
+      - name: Tests unitaires + APK de test
+        run: gradle testEnfantDebugUnitTest testParentDebugUnitTest assembleEnfantDebug assembleParentDebug lintEnfantDebug lintParentDebug --no-daemon --console=plain
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rapports-unitaires
+          path: |
+            app/build/reports/tests
+            app/build/reports/lint-results-*.html
+          if-no-files-found: ignore
+
+  appareils:
+    name: Android ${{ matrix.nom }}
+    runs-on: ubuntu-latest
+    needs: unitaires
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { nom: "7 (API 24) petit telephone",   api: 24, cible: default,     profil: "Nexus 5X",     police: "1.0", sombre: "no" }
+          - { nom: "8.1 (API 27) ecran moyen",     api: 27, cible: default,     profil: "pixel",        police: "1.0", sombre: "no" }
+          - { nom: "10 (API 29) police maxi",      api: 29, cible: default,     profil: "pixel_3",      police: "2.0", sombre: "no" }
+          - { nom: "11 (API 30)",                  api: 30, cible: google_apis, profil: "pixel_4",      police: "1.0", sombre: "no" }
+          - { nom: "12 (API 31) mode sombre",      api: 31, cible: google_apis, profil: "pixel_5",      police: "1.0", sombre: "yes" }
+          - { nom: "13 (API 33) police maxi",      api: 33, cible: google_apis, profil: "pixel_6",      police: "2.0", sombre: "no" }
+          - { nom: "14 (API 34) pliable",          api: 34, cible: google_apis, profil: "pixel_fold",   police: "1.0", sombre: "no" }
+          - { nom: "14 (API 34) tablette",         api: 34, cible: google_apis, profil: "pixel_tablet", police: "1.0", sombre: "no" }
+          - { nom: "15 (API 35) grand telephone",  api: 35, cible: google_apis, profil: "pixel_7_pro",  police: "1.3", sombre: "yes" }
+          - { nom: "16 (API 36)",                  api: 36, cible: google_apis, profil: "pixel_8",      police: "1.0", sombre: "no" }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Activer KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.14.3"
+      - name: Appareil virtuel et tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          target: ${{ matrix.cible }}
+          arch: x86_64
+          profile: ${{ matrix.profil }}
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          script: bash outils/tester-emulateur.sh ${{ matrix.police }} ${{ matrix.sombre }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: rapports-api${{ matrix.api }}-${{ matrix.profil }}-police${{ matrix.police }}
+          path: |
+            app/build/reports/androidTests
+            app/build/outputs/androidTest-results
+            sortie-monkey
+          if-no-files-found: ignore

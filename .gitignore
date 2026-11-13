@@ -1,0 +1,12 @@
+.gradle/
+build/
+local.properties
+*.keystore
+*.jks
+cles/
+.idea/
+captures/
+*.iml
+journal-build.txt
+sortie-monkey/
+
