@@ -42,17 +42,26 @@ object Harnais {
     private fun attendreFocus(sc: ActivityScenario<Activity>, attendu: Boolean): Boolean = attendre(15000) { focus(sc) == attendu }
 
     /** Ferme les applications qu'un test precedent a pu laisser au premier plan (Reglages Android, etc.) : elles volent le focus. */
+    private fun shell(cmd: String): String = try {
+        instr().uiAutomation.executeShellCommand(cmd).use { fd -> java.io.FileInputStream(fd.fileDescriptor).use { String(it.readBytes()) } }
+    } catch (e: Throwable) { "" }
+
+    /** Fenetre qui a le focus d'apres Android : sert a expliquer un echec de focus. */
+    private fun fenetreAuFocus(): String = shell("dumpsys window").lines().filter { it.contains("mCurrentFocus") || it.contains("mFocusedApp") }.joinToString(" | ") { it.trim() }
+
     private fun nettoyerPremierPlan() {
-        for (pkg in listOf("com.android.settings", "com.android.permissioncontroller", "com.google.android.permissioncontroller")) {
-            try {
-                instr().uiAutomation.executeShellCommand("am force-stop $pkg").use { fd ->
-                    java.io.FileInputStream(fd.fileDescriptor).use { it.readBytes() }
-                }
-            } catch (e: Throwable) { /* commande indisponible : sans effet sur le test */ }
-        }
+        for (pkg in listOf("com.android.settings", "com.android.permissioncontroller", "com.google.android.permissioncontroller")) shell("am force-stop $pkg")
+        shell("input keyevent KEYCODE_WAKEUP")
+        shell("wm dismiss-keyguard")
+        shell("cmd statusbar collapse")
         instr().waitForIdleSync()
     }
 
+    private fun exigerFocus(sc: ActivityScenario<Activity>, nom: String) {
+        if (attendreFocus(sc, true)) return
+        nettoyerPremierPlan()   // seconde chance : quelque chose d'autre tient le premier plan
+        assertTrue("$nom : l'ecran n'a pas le focus au demarrage (fenetre au focus : ${fenetreAuFocus()})", attendreFocus(sc, true))
+    }
     private fun appuyerRetourAndroid() {
         instr().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
         instr().waitForIdleSync()
@@ -70,7 +79,7 @@ object Harnais {
         nettoyerPremierPlan()
         val sc = ActivityScenario.launch<Activity>(intent)
         try {
-            assertTrue("$nom : l'ecran n'a pas le focus au demarrage", attendreFocus(sc, true))
+            exigerFocus(sc, nom)
             val vues = arrayOfNulls<View>(3)
             val ecran = arrayOf(Rect())
             sc.onActivity { a ->
@@ -126,7 +135,7 @@ object Harnais {
         nettoyerPremierPlan()
         val sc = ActivityScenario.launch<Activity>(intent)
         try {
-            assertTrue("$nom : l'ecran n'a pas le focus au demarrage", attendreFocus(sc, true))
+            exigerFocus(sc, nom)
             sc.onActivity { a -> (a.window.decorView.findViewWithTag<View>("retour") as Button).performClick() }
             assertTrue("$nom : le bouton Retour ne ferme pas l'ecran", attendre { sc.state == Lifecycle.State.DESTROYED })
         } finally {
