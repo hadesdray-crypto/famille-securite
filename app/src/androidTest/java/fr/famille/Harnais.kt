@@ -3,6 +3,7 @@ package fr.famille
 import android.app.Activity
 import android.content.Intent
 import android.graphics.Rect
+import android.os.Build
 import android.view.KeyEvent
 import android.view.View
 import android.widget.Button
@@ -21,7 +22,7 @@ import org.junit.Assert.assertTrue
 object Harnais {
     private fun instr() = InstrumentationRegistry.getInstrumentation()
 
-    private fun attendre(delaiMs: Long = 6000, condition: () -> Boolean): Boolean {
+    private fun attendre(delaiMs: Long = 8000, condition: () -> Boolean): Boolean {
         val fin = System.currentTimeMillis() + delaiMs
         while (System.currentTimeMillis() < fin) {
             instr().waitForIdleSync()
@@ -31,24 +32,34 @@ object Harnais {
         return condition()
     }
 
+    private fun focus(sc: ActivityScenario<Activity>): Boolean {
+        var f = false
+        try { sc.onActivity { f = it.hasWindowFocus() } } catch (e: Exception) { f = false }
+        return f
+    }
+
+    /** Attend que l'ecran ait (ou perde) le focus : c'est le signe qu'une fenetre vient de se fermer (ou de s'ouvrir). */
+    private fun attendreFocus(sc: ActivityScenario<Activity>, attendu: Boolean): Boolean = attendre { focus(sc) == attendu }
+
     private fun appuyerRetourAndroid() {
         instr().sendKeyDownUpSync(KeyEvent.KEYCODE_BACK)
         instr().waitForIdleSync()
     }
 
     private fun accorderNotifications() {
+        if (Build.VERSION.SDK_INT < 33) return   // avant Android 13, rien a accorder
         try {
             instr().uiAutomation.grantRuntimePermission(instr().targetContext.packageName, "android.permission.POST_NOTIFICATIONS")
-        } catch (e: Exception) { /* Android < 13 : rien a accorder */ }
+        } catch (e: Throwable) { /* deja accordee ou refusee : le test ne depend pas de ca */ }
     }
 
     fun verifierEcran(intent: Intent, racine: Boolean, nom: String) {
         accorderNotifications()
         val sc = ActivityScenario.launch<Activity>(intent)
         try {
-            instr().waitForIdleSync()
+            assertTrue("$nom : l'ecran n'a pas le focus au demarrage", attendreFocus(sc, true))
             val vues = arrayOfNulls<View>(3)
-            val ecran = arrayOf(Rect(), Rect())
+            val ecran = arrayOf(Rect())
             sc.onActivity { a ->
                 val d = a.window.decorView
                 vues[0] = d.findViewWithTag<View>("retour")
@@ -73,19 +84,22 @@ object Harnais {
                 }
             }
 
-            // 1. aide : ouvre une fenetre, la fleche retour la ferme et on reste sur l'ecran
+            // 1. aide : une fenetre s'ouvre (l'ecran perd le focus), la fleche retour la ferme (il le retrouve)
             sc.onActivity { (aide as View).performClick() }
-            instr().waitForIdleSync()
+            assertTrue("$nom : la fenetre d'aide ne s'ouvre pas", attendreFocus(sc, false))
             appuyerRetourAndroid()
+            assertTrue("$nom : la fenetre d'aide ne se ferme pas avec la fleche retour", attendreFocus(sc, true))
             assertTrue("$nom : l'ecran a disparu en fermant l'aide", sc.state == Lifecycle.State.RESUMED)
 
-            // 2. fleche retour d'Android
+            // 2. fleche retour d'Android sur l'ecran lui-meme
             appuyerRetourAndroid()
             if (racine) {
-                // l'accueil demande « quitter ? » : on reste dessus, la fleche suivante ferme la fenetre
-                assertTrue("$nom : l'accueil se ferme sans confirmation", sc.state == Lifecycle.State.RESUMED)
+                // l'accueil demande « quitter ? » : une fenetre s'ouvre, on reste sur l'accueil
+                assertTrue("$nom : l'accueil ne demande pas confirmation avant de quitter", attendreFocus(sc, false))
+                assertTrue("$nom : l'accueil s'est ferme sans confirmation", sc.state == Lifecycle.State.RESUMED)
                 appuyerRetourAndroid()
-                assertTrue("$nom : l'accueil se ferme malgre « rester »", sc.state == Lifecycle.State.RESUMED)
+                assertTrue("$nom : la fenetre « quitter ? » ne se ferme pas", attendreFocus(sc, true))
+                assertTrue("$nom : l'accueil s'est ferme alors qu'on a choisi de rester", sc.state == Lifecycle.State.RESUMED)
             } else {
                 assertTrue("$nom : la fleche retour ne ferme pas l'ecran", attendre { sc.state == Lifecycle.State.DESTROYED })
             }
@@ -98,7 +112,7 @@ object Harnais {
     fun verifierBoutonRetour(intent: Intent, nom: String) {
         val sc = ActivityScenario.launch<Activity>(intent)
         try {
-            instr().waitForIdleSync()
+            assertTrue("$nom : l'ecran n'a pas le focus au demarrage", attendreFocus(sc, true))
             sc.onActivity { a -> (a.window.decorView.findViewWithTag<View>("retour") as Button).performClick() }
             assertTrue("$nom : le bouton Retour ne ferme pas l'ecran", attendre { sc.state == Lifecycle.State.DESTROYED })
         } finally {

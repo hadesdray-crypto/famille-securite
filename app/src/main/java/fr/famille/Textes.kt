@@ -64,6 +64,12 @@ Enfants
 L'application est conçue pour un usage par un parent avec son enfant mineur, et sous sa responsabilité.
 """.trimIndent()
 
+    const val AIDE_BLOCAGES =
+        "Samsung, Auto Blocker : Paramètres > Sécurité et confidentialité > Auto Blocker. Désactive « Bloquer les installations de logiciels non autorisés » le temps d'une mise à jour.\n\n" +
+        "Play Protect : Play Store > ton profil > Play Protect > roue crantée. Si l'installation est refusée, désactive « Analyser les applis avec Play Protect », installe, puis réactive.\n\n" +
+        "Samsung, veille des applications : Paramètres > Batterie > Limites d'utilisation en arrière-plan > Applications jamais en veille > ajoute l'application Famille.\n\n" +
+        "Xiaomi : Paramètres > Applications > Autorisations > Démarrage automatique, et batterie « Aucune restriction »."
+
     val COMMENT_ENFANT = """
 1. Ton parent te donne un code de 34 caractères. Tape-le dans « Associer à mon parent ».
 2. Ouvre « Autorisations » et accepte chaque ligne, une par une : position, accès à l'usage, administrateur de l'appareil, affichage par-dessus les autres applications, notifications, économie de batterie.

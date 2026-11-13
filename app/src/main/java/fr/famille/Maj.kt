@@ -118,6 +118,10 @@ class MajActivity : Ecran() {
     override val titre get() = "Mises à jour"
     override val aide get() = "L'application cherche sur Internet si une nouvelle version existe. Tu vois la liste des changements, puis tu valides. Si le chargement s'interrompt, « Reprendre » continue là où il s'était arrêté. L'ancienne version est gardée en copie."
 
+    /** Adresse du fichier de version. Seules les versions de test (debug) acceptent une adresse imposee. */
+    private val adresseVersion: String
+        get() = if (BuildConfig.DEBUG) intent.getStringExtra(EXTRA_URL_MAJ) ?: Config.URL_MAJ else Config.URL_MAJ
+
     private var info: InfoMaj? = null
     private var etat: TextView? = null
     private var barre: ProgressBar? = null
@@ -131,6 +135,10 @@ class MajActivity : Ecran() {
             addView(barre, LinearLayout.LayoutParams(-1, -2))
         }
         c.bouton("Chercher une mise à jour", Theme.VERT) { chercher(c) }
+        c.carte {
+            texte("Si l'installation est bloquée", Theme.CYAN)
+            petit(Textes.AIDE_BLOCAGES)
+        }
         val erreur = getSharedPreferences("famille", MODE_PRIVATE).getString("maj_erreur", null)
         if (erreur != null) {
             c.petit("Dernier échec d'installation : $erreur")
@@ -143,7 +151,7 @@ class MajActivity : Ecran() {
         occupe = true
         etat?.text = "Recherche en cours…"
         Thread {
-            val json = Maj.telechargerTexte(Config.URL_MAJ)
+            val json = Maj.telechargerTexte(adresseVersion)
             val i = if (json == null) null else Maj.lire(json, BuildConfig.ROLE)
             runOnUiThread {
                 occupe = false
@@ -205,5 +213,9 @@ class MajActivity : Ecran() {
 
     private fun fin(msg: String) {
         runOnUiThread { occupe = false; etat?.text = msg; barre?.visibility = android.view.View.GONE }
+    }
+
+    companion object {
+        const val EXTRA_URL_MAJ = "url_maj"
     }
 }

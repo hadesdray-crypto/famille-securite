@@ -1,0 +1,22 @@
+{
+    "parent":  {
+                   "changes":  [
+                                   "Premier changement de test",
+                                   "Deuxieme changement de test"
+                               ],
+                   "code":  99,
+                   "nom":  "9.9.9",
+                   "sha256":  "58cf124a207bdc95110e0dfc92674d62b79f72be43add065f7eeb5dfa42085f6",
+                   "apk":  "https://github.com/hadesdray-crypto/famille-securite/releases/download/donnees-tests/blob.bin"
+               },
+    "enfant":  {
+                   "changes":  [
+                                   "Premier changement de test",
+                                   "Deuxieme changement de test"
+                               ],
+                   "code":  99,
+                   "nom":  "9.9.9",
+                   "sha256":  "58cf124a207bdc95110e0dfc92674d62b79f72be43add065f7eeb5dfa42085f6",
+                   "apk":  "https://github.com/hadesdray-crypto/famille-securite/releases/download/donnees-tests/blob.bin"
+               }
+}
