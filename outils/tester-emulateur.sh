@@ -12,10 +12,17 @@ adb shell "cmd uimode night $SOMBRE" || true
 adb shell settings put global window_animation_scale 0
 adb shell settings put global transition_animation_scale 0
 adb shell settings put global animator_duration_scale 0
+# Les fenetres "ne repond plus" du lanceur Android (emulateur lent) volent le focus aux tests : on les masque et on laisse l'appareil se calmer.
+adb shell settings put global hide_error_dialogs 1
+adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS >/dev/null 2>&1 || true
+sleep 20
+adb shell input keyevent KEYCODE_HOME || true
 
 # 1. tests de navigation (chaque ecran : retour, aide, fleche Android, rien hors de l'ecran)
 for ROLE in Enfant Parent; do
   echo "=== tests instrumentes : $ROLE (police $POLICE, sombre $SOMBRE) ==="
+  adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS >/dev/null 2>&1 || true
+  adb shell input keyevent KEYCODE_HOME || true
   if ! gradle "connected${ROLE}DebugAndroidTest" --no-daemon --console=plain; then
     echo "ECHEC des tests instrumentes : $ROLE"
     ECHEC=1

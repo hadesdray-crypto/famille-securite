@@ -32,6 +32,7 @@ jobs:
   appareils:
     name: Android ${{ matrix.nom }}
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     needs: unitaires
     strategy:
       fail-fast: false
