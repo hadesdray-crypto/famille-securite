@@ -36,17 +36,15 @@ for APP in enfant parent; do
   adb install -r -g "$APK" >/dev/null
   adb logcat -c
   echo "=== monkey : $PAQUET ==="
-  # Sur Android 10 le test aleatoire peut tourner sans fin (gestes refuses apres un retour a l accueil) : limite de 6 minutes, puis on juge sur ce qui a ete envoye.
-  timeout 360 adb shell monkey -p "$PAQUET" --throttle 60 --ignore-security-exceptions --pct-syskeys 8 -v 3000 > "sortie-monkey/monkey-$APP.txt" 2>&1
+  # Android 10 : apres un appui sur la touche Accueil, le test aleatoire n arrive plus a envoyer de gestes et tourne sans fin. On n y appuie donc pas sur Android 10.
+  SDK=$(adb shell getprop ro.build.version.sdk | tr -d '\r')
+  TOUCHES=8
+  if [ "$SDK" = "29" ]; then TOUCHES=0; fi
+  timeout 420 adb shell monkey -p "$PAQUET" --throttle 60 --ignore-security-exceptions --pct-syskeys "$TOUCHES" -v 3000 > "sortie-monkey/monkey-$APP.txt" 2>&1
   MONKEY_CODE=$?
   if [ "$MONKEY_CODE" -eq 124 ]; then
-    echo "monkey $PAQUET : arret apres 6 minutes"
+    echo "ECHEC monkey : le test aleatoire de $PAQUET ne se termine pas (7 minutes)"
     adb shell pkill -f com.android.commands.monkey >/dev/null 2>&1 || true
-  fi
-  GESTES=$(grep -c "^:Sending" "sortie-monkey/monkey-$APP.txt" || true)
-  echo "monkey $PAQUET : $GESTES gestes envoyes"
-  if [ "${GESTES:-0}" -lt 300 ]; then
-    echo "ECHEC monkey : moins de 300 gestes envoyes dans $PAQUET"
     ECHEC=1
   fi
   adb logcat -d > "sortie-monkey/logcat-$APP.txt"
