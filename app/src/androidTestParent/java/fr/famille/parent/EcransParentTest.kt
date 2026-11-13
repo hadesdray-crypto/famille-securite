@@ -15,6 +15,7 @@ class EcransParentTest {
     private var enfantId = ""
 
     @Before fun preparer() {
+        fr.famille.Intro.marquer(ctx)
         DepotParent.liste(ctx).forEach { DepotParent.retirer(ctx, it.id) }
         val e = DepotParent.ajouter(ctx, "Léo")
         enfantId = e.id

@@ -1,7 +1,23 @@
 package fr.famille
 
+import android.content.Context
 import android.content.Intent
 import android.widget.LinearLayout
+
+/** Premiere ouverture : l'ecran « Bienvenue » s'affiche une seule fois. */
+object Intro {
+    private fun p(ctx: Context) = ctx.applicationContext.getSharedPreferences("famille_intro", Context.MODE_PRIVATE)
+    fun vue(ctx: Context): Boolean = p(ctx).getBoolean("vue", false)
+    fun marquer(ctx: Context) { p(ctx).edit().putBoolean("vue", true).apply() }
+
+    /** A appeler a l'ouverture de l'accueil : montre « Comment ça marche » une seule fois. */
+    fun montrerSiPremiereFois(ecran: Context) {
+        if (vue(ecran)) return
+        marquer(ecran)
+        val t = if (BuildConfig.ROLE == "enfant") Textes.COMMENT_ENFANT else Textes.COMMENT_PARENT
+        TexteActivity.ouvrir(ecran, "Bienvenue", t, "J'ai compris")
+    }
+}
 
 /** Page de texte (mentions legales, conditions, confidentialite, comment ca marche). */
 class TexteActivity : Ecran() {
@@ -11,15 +27,21 @@ class TexteActivity : Ecran() {
         get() = "Lis le texte en faisant défiler la page. Le bouton Retour te ramène à l'écran précédent."
 
     override fun construire(c: LinearLayout) {
-        val texte = intent.getStringExtra(EXTRA_TEXTE) ?: "Texte indisponible."
-        c.carte { texte(texte) }
+        val corps = intent.getStringExtra(EXTRA_TEXTE) ?: "Texte indisponible."
+        c.carte { texte(corps) }
+        val bouton = intent.getStringExtra(EXTRA_BOUTON)
+        if (bouton != null) c.bouton(bouton, Theme.VERT) { finish() }
     }
 
     companion object {
         const val EXTRA_TITRE = "titre"
         const val EXTRA_TEXTE = "texte"
-        fun ouvrir(depuis: android.content.Context, titre: String, texte: String) {
-            depuis.startActivity(Intent(depuis, TexteActivity::class.java).putExtra(EXTRA_TITRE, titre).putExtra(EXTRA_TEXTE, texte))
+        const val EXTRA_BOUTON = "bouton"
+        fun ouvrir(depuis: Context, titre: String, texte: String, bouton: String? = null) {
+            val i = Intent(depuis, TexteActivity::class.java).putExtra(EXTRA_TITRE, titre).putExtra(EXTRA_TEXTE, texte)
+            if (bouton != null) i.putExtra(EXTRA_BOUTON, bouton)
+            if (depuis !is android.app.Activity) i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            depuis.startActivity(i)
         }
     }
 }

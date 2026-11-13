@@ -92,7 +92,7 @@ class ServiceEnfant : Service() {
     }
 
     @Suppress("DEPRECATION")
-    private fun passerAuPremierPlan() {
+    private fun passerAuPremierPlan(): Boolean {
         Notifier.canaux(this)
         val ouvrir = PendingIntent.getActivity(this, 1, Intent(this, AccueilEnfant::class.java), PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= 23) PendingIntent.FLAG_IMMUTABLE else 0))
         val n = Notifier.construire(this, CANAL_FOND, "Famille est active", "Ton parent peut voir ta position et ton temps d'écran, et t'envoyer un message.")
@@ -107,14 +107,21 @@ class ServiceEnfant : Service() {
             } else {
                 startForeground(Notifier.ID_FOND, n)
             }
+            return true
         } catch (e: Exception) {
-            try { startForeground(Notifier.ID_FOND, n) } catch (e2: Exception) { }
+            // essai de secours : sans type de service (Android < 14) ; sinon on arrete proprement
+            return try {
+                if (Build.VERSION.SDK_INT >= 34) startForeground(Notifier.ID_FOND, n, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE) else startForeground(Notifier.ID_FOND, n)
+                true
+            } catch (e2: Exception) {
+                false
+            }
         }
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        passerAuPremierPlan()
-        if (!reg.associe) { stopSelf(); return START_NOT_STICKY }
+        val premierPlan = passerAuPremierPlan()
+        if (!premierPlan || !reg.associe) { stopSelf(); return START_NOT_STICKY }
         arret.set(false)
         if (ecoute == null || ecoute?.isAlive != true) {
             ecoute = Thread { ecouter() }.also { it.name = "famille-ecoute"; it.start() }

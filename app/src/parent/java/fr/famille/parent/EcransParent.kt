@@ -29,6 +29,11 @@ class AccueilParent : Ecran() {
 
     private var actif = false
 
+    override fun onCreate(etat: android.os.Bundle?) {
+        super.onCreate(etat)
+        fr.famille.Intro.montrerSiPremiereFois(this)
+    }
+
     override fun onResume() {
         super.onResume()
         actif = true

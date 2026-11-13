@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- Ecran volontairement defectueux, present UNIQUEMENT dans les versions de test (jamais dans les APK livres) :
+             il sert a prouver que le banc d'essai detecte bien les vraies erreurs. -->
+        <activity android:name="fr.famille.EcranCasse" android:exported="false" />
+    </application>
+</manifest>

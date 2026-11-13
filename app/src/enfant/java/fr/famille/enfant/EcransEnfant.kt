@@ -26,6 +26,11 @@ class AccueilEnfant : Ecran() {
     override val racine get() = true
     override val aide get() = "Cette application garde le lien avec ton parent. Associe-la avec le code qu'il te donne, puis active chaque autorisation. Une notification reste affichée : c'est normal, elle montre que l'application est active."
 
+    override fun onCreate(etat: android.os.Bundle?) {
+        super.onCreate(etat)
+        fr.famille.Intro.montrerSiPremiereFois(this)
+    }
+
     override fun onResume() {
         super.onResume()
         reconstruire()

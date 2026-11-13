@@ -12,6 +12,8 @@ import org.junit.runner.RunWith
 class EcransEnfantTest {
     private val ctx get() = InstrumentationRegistry.getInstrumentation().targetContext
 
+    @org.junit.Before fun introVue() { fr.famille.Intro.marquer(ctx) }
+
     private fun associer() { ReglagesEnfant(ctx).code = Cle.code(Cle.nouveauSecret()) }
     private fun dissocier() { ReglagesEnfant(ctx).oublier() }
 
