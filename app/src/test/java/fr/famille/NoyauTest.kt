@@ -26,8 +26,10 @@ class CleTest {
         assertArrayEquals(s, Cle.lireCode("  " + Cle.code(s).replace("-", " ") + "  "))
     }
 
+    // Secret fixe : la cle de controle fait 2 caracteres (10 bits), donc un secret tire au hasard laisse passer environ 3 % des cas une faute qui tombe sur la meme cle.
+    // Le test verifie le mecanisme de facon reproductible ; la limite d'environ 1 faute sur 1000 est connue.
     @Test fun fauteDeFrappeDetectee() {
-        val s = Cle.nouveauSecret()
+        val s = ByteArray(Cle.TAILLE_SECRET) { (it * 7 + 3).toByte() }
         val net = Cle.code(s).replace("-", "")
         for (i in net.indices) {
             val c = net[i]
